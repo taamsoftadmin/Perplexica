@@ -23,6 +23,21 @@ const CUSTOM_OPENAI_MODELS = [
   { value: 'gpt-4o-mini', label: 'GPT-4 Omni Mini' },
 ] as const;
 
+export const DEFAULT_OPENAI_MODEL = 'gpt-4';
+export const DEFAULT_PROVIDER = 'custom_openai';
+export const DEFAULT_BASE_URL = 'https://newapi.taam.cloud/v1';
+
+type ProviderType = 'custom_openai' | 'openai' | 'anthropic' | 'groq' | 'ollama' | 'gemini';
+
+const providerDisplayNames: Record<ProviderType, string> = {
+  custom_openai: 'Taam API',
+  openai: 'OpenAI',
+  anthropic: 'Anthropic',
+  groq: 'GROQ',
+  ollama: 'Ollama',
+  gemini: 'Gemini',
+};
+
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
 
 const Input = ({ className, ...restProps }: InputProps) => {
@@ -147,31 +162,27 @@ const SettingsDialog = ({
         const data = (await res.json()) as SettingsType;
         setConfig(data);
 
-        const chatModelProvidersKeys = Object.keys(
-          data.chatModelProviders || {},
-        );
+        // Get stored values or use defaults
+        const chatModelProvider = localStorage.getItem('chatModelProvider') || DEFAULT_PROVIDER;
+        const chatModel = localStorage.getItem('chatModel') || DEFAULT_OPENAI_MODEL;
+        const customBaseUrl = localStorage.getItem('openAIBaseURL') || DEFAULT_BASE_URL;
+        const customApiKey = localStorage.getItem('openAIApiKey') || '';
+        
+        // Set default provider to custom_openai
+        setSelectedChatModelProvider(chatModelProvider);
+        setSelectedChatModel(chatModel);
+        setCustomOpenAIBaseURL(customBaseUrl);
+        setCustomOpenAIApiKey(customApiKey);
+
         const embeddingModelProvidersKeys = Object.keys(
           data.embeddingModelProviders || {},
         );
 
-        const defaultChatModelProvider =
-          chatModelProvidersKeys.length > 0 ? chatModelProvidersKeys[0] : '';
         const defaultEmbeddingModelProvider =
           embeddingModelProvidersKeys.length > 0
             ? embeddingModelProvidersKeys[0]
             : '';
 
-        const chatModelProvider =
-          localStorage.getItem('chatModelProvider') ||
-          defaultChatModelProvider ||
-          '';
-        const chatModel =
-          localStorage.getItem('chatModel') ||
-          (data.chatModelProviders &&
-          data.chatModelProviders[chatModelProvider]?.length > 0
-            ? data.chatModelProviders[chatModelProvider][0].name
-            : undefined) ||
-          '';
         const embeddingModelProvider =
           localStorage.getItem('embeddingModelProvider') ||
           defaultEmbeddingModelProvider ||
@@ -182,12 +193,8 @@ const SettingsDialog = ({
             data.embeddingModelProviders[embeddingModelProvider]?.[0].name) ||
           '';
 
-        setSelectedChatModelProvider(chatModelProvider);
-        setSelectedChatModel(chatModel);
         setSelectedEmbeddingModelProvider(embeddingModelProvider);
         setSelectedEmbeddingModel(embeddingModel);
-        setCustomOpenAIApiKey(localStorage.getItem('openAIApiKey') || '');
-        setCustomOpenAIBaseURL(localStorage.getItem('openAIBaseURL') || '');
         setChatModels(data.chatModelProviders || {});
         setEmbeddingModels(data.embeddingModelProviders || {});
         setIsLoading(false);
@@ -296,7 +303,7 @@ const SettingsDialog = ({
                             options={Object.keys(config.chatModelProviders).map(
                               (provider) => ({
                                 value: provider,
-                                label: provider.charAt(0).toUpperCase() + provider.slice(1),
+                                label: providerDisplayNames[provider as ProviderType] || provider.charAt(0).toUpperCase() + provider.slice(1),
                               }),
                             )}
                           />
@@ -348,8 +355,8 @@ const SettingsDialog = ({
                     {selectedChatModelProvider === 'custom_openai' && (
                       <div className="space-y-4 border rounded-lg p-4 bg-light-secondary/50 dark:bg-dark-200/50">
                         <SettingItem 
-                          label="Custom Model Name"
-                          description="Select or enter an OpenAI model identifier"
+                          label="Taam Model"
+                          description="Select or enter a Taam API model identifier"
                         >
                           <div className="flex flex-col space-y-2">
                             <Select
@@ -374,8 +381,8 @@ const SettingsDialog = ({
                         </SettingItem>
                         
                         <SettingItem 
-                          label="Custom API Key"
-                          description="Your OpenAI API key for custom endpoint"
+                          label="Taam API Key"
+                          description="Your Taam API key"
                         >
                           <Input
                             type="password"
@@ -385,13 +392,13 @@ const SettingsDialog = ({
                           />
                         </SettingItem>
                         <SettingItem 
-                          label="Base URL"
-                          description="Custom OpenAI API endpoint URL"
+                          label="API Base URL"
+                          description="Taam API endpoint URL"
                         >
                           <Input
                             type="text"
-                            placeholder="https://api.openai.com/v1"
-                            defaultValue={customOpenAIBaseURL!}
+                            placeholder="https://newapi.taam.cloud/v1"
+                            defaultValue={customOpenAIBaseURL || DEFAULT_BASE_URL}
                             onChange={(e) => setCustomOpenAIBaseURL(e.target.value)}
                           />
                         </SettingItem>

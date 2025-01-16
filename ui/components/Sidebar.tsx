@@ -42,10 +42,10 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div>
-      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-20 lg:flex-col">
-        <div className="flex grow flex-col items-center justify-between gap-y-5 overflow-y-auto bg-light-secondary dark:bg-dark-secondary px-2 py-8">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-14 lg:flex-col">
+        <div className="flex grow flex-col items-center justify-between gap-y-4 overflow-y-auto bg-light-secondary dark:bg-dark-secondary px-1.5 py-6">
           <a href="/">
-            <SquarePen className="cursor-pointer" />
+            <SquarePen className="cursor-pointer w-5 h-5" />
           </a>
           <VerticalIconContainer>
             {navLinks.map((link, i) => (
@@ -53,21 +53,22 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
                 key={i}
                 href={link.href}
                 className={cn(
-                  'relative flex flex-row items-center justify-center cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 duration-150 transition w-full py-2 rounded-lg',
+                  'relative flex items-center justify-center cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 duration-150 transition w-full p-1.5 rounded-lg',
                   link.active
                     ? 'text-black dark:text-white'
                     : 'text-black/70 dark:text-white/70',
                 )}
               >
-                <link.icon />
+                <link.icon size={18} />
                 {link.active && (
-                  <div className="absolute right-0 -mr-2 h-full w-1 rounded-l-lg bg-black dark:bg-white" />
+                  <div className="absolute right-0 -mr-1.5 h-full w-0.5 rounded-l-lg bg-black dark:bg-white" />
                 )}
               </Link>
             ))}
           </VerticalIconContainer>
 
           <Settings
+            size={18}
             onClick={() => setIsSettingsOpen(!isSettingsOpen)}
             className="cursor-pointer"
           />
@@ -89,8 +90,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
               link.active
                 ? 'text-black dark:text-white'
                 : 'text-black dark:text-white/70',
-            )}
-          >
+            )}>
             {link.active && (
               <div className="absolute top-0 -mt-4 h-1 w-full rounded-b-lg bg-black dark:bg-white" />
             )}

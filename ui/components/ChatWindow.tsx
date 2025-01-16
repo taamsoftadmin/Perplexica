@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { useSearchParams } from 'next/navigation';
 import { getSuggestions } from '@/lib/actions';
 import { Settings } from 'lucide-react';
-import SettingsDialog from './SettingsDialog';
+import SettingsDialog, { DEFAULT_OPENAI_MODEL, DEFAULT_PROVIDER, DEFAULT_BASE_URL } from './SettingsDialog';
 import NextError from 'next/error';
 
 export type Message = {
@@ -33,6 +33,7 @@ const useSocket = (
   url: string,
   setIsWSReady: (ready: boolean) => void,
   setError: (error: boolean) => void,
+  setShowSettings: (show: boolean) => void,
 ) => {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
@@ -52,20 +53,15 @@ const useSocket = (
       }
 
       try {
-        let chatModel = localStorage.getItem('chatModel');
-        let chatModelProvider = localStorage.getItem('chatModelProvider');
-        let embeddingModel = localStorage.getItem('embeddingModel');
-        let embeddingModelProvider = localStorage.getItem(
-          'embeddingModelProvider',
-        );
-        let openAIBaseURL =
-          chatModelProvider === 'custom_openai'
-            ? localStorage.getItem('openAIBaseURL')
-            : null;
-        let openAIPIKey =
-          chatModelProvider === 'custom_openai'
-            ? localStorage.getItem('openAIApiKey')
-            : null;
+        let chatModel = localStorage.getItem('chatModel') || DEFAULT_OPENAI_MODEL;
+        let chatModelProvider = localStorage.getItem('chatModelProvider') || DEFAULT_PROVIDER;
+        let openAIBaseURL = localStorage.getItem('openAIBaseURL') || DEFAULT_BASE_URL;
+        let openAIApiKey = localStorage.getItem('openAIApiKey');
+
+        if (chatModelProvider === 'custom_openai' && !openAIApiKey) {
+          setShowSettings(true); // Show settings dialog instead of error
+          return;
+        }
 
         const providers = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/models`,
@@ -84,9 +80,7 @@ const useSocket = (
 
         if (
           !chatModel ||
-          !chatModelProvider ||
-          !embeddingModel ||
-          !embeddingModelProvider
+          !chatModelProvider
         ) {
           if (!chatModel || !chatModelProvider) {
             const chatModelProviders = providers.chatModelProviders;
@@ -96,7 +90,7 @@ const useSocket = (
 
             if (chatModelProvider === 'custom_openai') {
               toast.error(
-                'Seems like you are using the custom OpenAI provider, please open the settings and enter a model name to use.',
+                'Please configure your Taam API key in settings to continue.',
               );
               setError(true);
               return;
@@ -111,35 +105,14 @@ const useSocket = (
             }
           }
 
-          if (!embeddingModel || !embeddingModelProvider) {
-            const embeddingModelProviders = providers.embeddingModelProviders;
-
-            if (
-              !embeddingModelProviders ||
-              Object.keys(embeddingModelProviders).length === 0
-            )
-              return toast.error('No embedding models available');
-
-            embeddingModelProvider = Object.keys(embeddingModelProviders)[0];
-            embeddingModel = Object.keys(
-              embeddingModelProviders[embeddingModelProvider],
-            )[0];
-          }
-
           localStorage.setItem('chatModel', chatModel!);
           localStorage.setItem('chatModelProvider', chatModelProvider);
-          localStorage.setItem('embeddingModel', embeddingModel!);
-          localStorage.setItem(
-            'embeddingModelProvider',
-            embeddingModelProvider,
-          );
         } else {
           const chatModelProviders = providers.chatModelProviders;
-          const embeddingModelProviders = providers.embeddingModelProviders;
 
           if (
             Object.keys(chatModelProviders).length > 0 &&
-            (((!openAIBaseURL || !openAIPIKey) &&
+            (((!openAIBaseURL || !openAIApiKey) &&
               chatModelProvider === 'custom_openai') ||
               !chatModelProviders[chatModelProvider])
           ) {
@@ -151,12 +124,9 @@ const useSocket = (
 
             if (
               chatModelProvider === 'custom_openai' &&
-              (!openAIBaseURL || !openAIPIKey)
+              (!openAIBaseURL || !openAIApiKey)
             ) {
-              toast.error(
-                'Seems like you are using the custom OpenAI provider, please open the settings and configure the API key and base URL',
-              );
-              setError(true);
+              setShowSettings(true);
               return;
             }
 
@@ -165,7 +135,7 @@ const useSocket = (
 
           if (
             chatModelProvider &&
-            (!openAIBaseURL || !openAIPIKey) &&
+            (!openAIBaseURL || !openAIApiKey) &&
             !chatModelProviders[chatModelProvider][chatModel]
           ) {
             chatModel = Object.keys(
@@ -176,27 +146,6 @@ const useSocket = (
               ],
             )[0];
             localStorage.setItem('chatModel', chatModel);
-          }
-
-          if (
-            Object.keys(embeddingModelProviders).length > 0 &&
-            !embeddingModelProviders[embeddingModelProvider]
-          ) {
-            embeddingModelProvider = Object.keys(embeddingModelProviders)[0];
-            localStorage.setItem(
-              'embeddingModelProvider',
-              embeddingModelProvider,
-            );
-          }
-
-          if (
-            embeddingModelProvider &&
-            !embeddingModelProviders[embeddingModelProvider][embeddingModel]
-          ) {
-            embeddingModel = Object.keys(
-              embeddingModelProviders[embeddingModelProvider],
-            )[0];
-            localStorage.setItem('embeddingModel', embeddingModel);
           }
         }
 
@@ -216,9 +165,6 @@ const useSocket = (
             localStorage.getItem('openAIBaseURL')!,
           );
         }
-
-        searchParams.append('embeddingModel', embeddingModel!);
-        searchParams.append('embeddingModelProvider', embeddingModelProvider);
 
         wsURL.search = searchParams.toString();
 
@@ -316,7 +262,7 @@ const useSocket = (
         console.debug(new Date(), 'ws:cleanup');
       }
     };
-  }, [url, setIsWSReady, setError]);
+  }, [url, setIsWSReady, setError, setShowSettings]);
 
   return wsRef.current;
 };
@@ -384,7 +330,7 @@ const loadMessages = async (
 
 const ChatWindow = ({ id }: { id?: string }) => {
   const searchParams = useSearchParams();
-  const initialMessage = searchParams.get('q');
+  const initialMessage = searchParams?.get('q') || null;
 
   const [chatId, setChatId] = useState<string | undefined>(id);
   const [newChatCreated, setNewChatCreated] = useState(false);
@@ -393,10 +339,13 @@ const ChatWindow = ({ id }: { id?: string }) => {
   const [isReady, setIsReady] = useState(false);
 
   const [isWSReady, setIsWSReady] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   const ws = useSocket(
     process.env.NEXT_PUBLIC_WS_URL!,
     setIsWSReady,
     setHasError,
+    setIsSettingsOpen
   );
 
   const [loading, setLoading] = useState(false);
@@ -414,8 +363,6 @@ const ChatWindow = ({ id }: { id?: string }) => {
   const [isMessagesLoaded, setIsMessagesLoaded] = useState(false);
 
   const [notFound, setNotFound] = useState(false);
-
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (
@@ -628,14 +575,8 @@ const ChatWindow = ({ id }: { id?: string }) => {
   if (hasError) {
     return (
       <div className="relative">
-        <div className="absolute w-full flex flex-row items-center justify-end mr-5 mt-5">
-          <Settings
-            className="cursor-pointer lg:hidden"
-            onClick={() => setIsSettingsOpen(true)}
-          />
-        </div>
         <div className="flex flex-col items-center justify-center min-h-screen">
-          <p className="dark:text-white/70 text-black/70 text-sm">
+          <p className="dark:text-white/70 text-black/70 text-sm mb-4">
             Failed to connect to the server. Please try again later.
           </p>
         </div>
@@ -644,11 +585,12 @@ const ChatWindow = ({ id }: { id?: string }) => {
     );
   }
 
-  return isReady ? (
+  return isReady || isSettingsOpen ? ( // Allow rendering when settings is open
     notFound ? (
       <NextError statusCode={404} />
     ) : (
       <div>
+        <SettingsDialog isOpen={isSettingsOpen} setIsOpen={setIsSettingsOpen} />
         {messages.length > 0 ? (
           <>
             <Navbar chatId={chatId!} messages={messages} />
