@@ -1,0 +1,129 @@
+{
+    "info": {
+        "name": "Perplexica API",
+        "description": "Collection for Perplexica Search API endpoints",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Search",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost:3001/api/search",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "3001",
+                    "path": ["api", "search"]
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"chatModel\": {\n        \"provider\": \"openai\",\n        \"model\": \"gpt-4o-mini\",\n        \"customOpenAIBaseURL\": \"https://your-custom-url.com\",\n        \"customOpenAIKey\": \"your-api-key\"\n    },\n    \"embeddingModel\": {\n        \"provider\": \"openai\",\n        \"model\": \"text-embedding-3-large\"\n    },\n    \"optimizationMode\": \"speed\",\n    \"focusMode\": \"webSearch\",\n    \"query\": \"What is Perplexica\",\n    \"history\": [\n        [\"human\", \"Hi, how are you?\"],\n        [\"assistant\", \"I am doing well, how can I help you today?\"]\n    ]\n}"
+                }
+            },
+            "response": [
+                {
+                    "name": "Successful Response",
+                    "originalRequest": {
+                        "method": "POST",
+                        "url": {
+                            "raw": "http://localhost:3001/api/search"
+                        }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "body": "{\n    \"message\": \"Perplexica is an innovative, open-source AI-powered search engine...\",\n    \"sources\": [\n        {\n            \"pageContent\": \"Sample content\",\n            \"metadata\": {\n                \"title\": \"Sample Title\",\n                \"url\": \"https://example.com\"\n            }\n        }\n    ]\n}"
+                }
+            ]
+        },
+        {
+            "name": "Get Models",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:3001/api/models",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "3001",
+                    "path": ["api", "models"]
+                }
+            }
+        },
+        {
+            "name": "Academic Search",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost:3001/api/search",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "3001",
+                    "path": ["api", "search"]
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"focusMode\": \"academicSearch\",\n    \"query\": \"Latest research in quantum computing\",\n    \"optimizationMode\": \"balanced\"\n}"
+                }
+            }
+        },
+        {
+            "name": "YouTube Search",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost:3001/api/search",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "3001",
+                    "path": ["api", "search"]
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"focusMode\": \"youtubeSearch\",\n    \"query\": \"Best programming tutorials 2024\"\n}"
+                }
+            }
+        },
+        {
+            "name": "Reddit Search",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost:3001/api/search",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "3001",
+                    "path": ["api", "search"]
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"focusMode\": \"redditSearch\",\n    \"query\": \"Best programming practices\"\n}"
+                }
+            }
+        }
+    ]
+}

@@ -15,6 +15,14 @@ import React, {
 } from 'react';
 import ThemeSwitcher from './theme/Switcher';
 
+const CUSTOM_OPENAI_MODELS = [
+  { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
+  { value: 'gpt-4', label: 'GPT-4' },
+  { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+  { value: 'gpt-4o', label: 'GPT-4 Omni' },
+  { value: 'gpt-4o-mini', label: 'GPT-4 Omni Mini' },
+] as const;
+
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
 
 const Input = ({ className, ...restProps }: InputProps) => {
@@ -66,6 +74,37 @@ interface SettingsType {
   geminiApiKey: string;
   ollamaApiUrl: string;
 }
+
+// Helper components for better organization
+const SectionHeader = ({ children }: { children: React.ReactNode }) => (
+  <h3 className="text-lg font-medium text-black/90 dark:text-white/90 mb-4 mt-6 border-b border-light-200 dark:border-dark-200 pb-2">
+    {children}
+  </h3>
+);
+
+const SettingItem = ({
+  label,
+  description,
+  children,
+  className,
+}: {
+  label: string;
+  description?: string;
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <div className={cn("flex flex-col space-y-1.5 mb-4", className)}>
+    <label className="text-sm font-medium text-black/70 dark:text-white/70">
+      {label}
+    </label>
+    {description && (
+      <p className="text-xs text-black/50 dark:text-white/50 mb-1">
+        {description}
+      </p>
+    )}
+    {children}
+  </div>
+);
 
 const SettingsDialog = ({
   isOpen,
@@ -206,7 +245,7 @@ const SettingsDialog = ({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-white/50 dark:bg-black/50" />
+          <div className="fixed inset-0 bg-black/25 dark:bg-black/40 backdrop-blur-sm" />
         </TransitionChild>
         <div className="fixed inset-0 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4 text-center">
@@ -216,151 +255,163 @@ const SettingsDialog = ({
               enterFrom="opacity-0 scale-95"
               enterTo="opacity-100 scale-100"
               leave="ease-in duration-100"
-              leaveFrom="opacity-100 scale-200"
+              leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <DialogPanel className="w-full max-w-md transform rounded-2xl bg-light-secondary dark:bg-dark-secondary border border-light-200 dark:border-dark-200 p-6 text-left align-middle shadow-xl transition-all">
-                <DialogTitle className="text-xl font-medium leading-6 dark:text-white">
+              <DialogPanel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white dark:bg-dark-secondary border border-light-200 dark:border-dark-200 p-6 text-left align-middle shadow-xl transition-all">
+                <DialogTitle className="text-2xl font-semibold text-black dark:text-white mb-2">
                   Settings
                 </DialogTitle>
-                {config && !isLoading && (
-                  <div className="flex flex-col space-y-4 mt-6">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-black/70 dark:text-white/70 text-sm">
-                        Theme
-                      </p>
+                
+                {config && !isLoading ? (
+                  <div className="mt-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+                    <SectionHeader>Appearance</SectionHeader>
+                    <SettingItem 
+                      label="Theme"
+                      description="Choose your preferred color theme"
+                    >
                       <ThemeSwitcher />
-                    </div>
-                    {config.chatModelProviders && (
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-black/70 dark:text-white/70 text-sm">
-                          Chat model Provider
-                        </p>
-                        <Select
-                          value={selectedChatModelProvider ?? undefined}
-                          onChange={(e) => {
-                            setSelectedChatModelProvider(e.target.value);
-                            if (e.target.value === 'custom_openai') {
-                              setSelectedChatModel('');
-                            } else {
-                              setSelectedChatModel(
-                                config.chatModelProviders[e.target.value][0]
-                                  .name,
-                              );
-                            }
-                          }}
-                          options={Object.keys(config.chatModelProviders).map(
-                            (provider) => ({
-                              value: provider,
-                              label:
-                                provider.charAt(0).toUpperCase() +
-                                provider.slice(1),
-                            }),
-                          )}
-                        />
-                      </div>
-                    )}
-                    {selectedChatModelProvider &&
-                      selectedChatModelProvider != 'custom_openai' && (
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-black/70 dark:text-white/70 text-sm">
-                            Chat Model
-                          </p>
-                          <Select
-                            value={selectedChatModel ?? undefined}
-                            onChange={(e) =>
-                              setSelectedChatModel(e.target.value)
-                            }
-                            options={(() => {
-                              const chatModelProvider =
-                                config.chatModelProviders[
-                                  selectedChatModelProvider
-                                ];
+                    </SettingItem>
 
-                              return chatModelProvider
-                                ? chatModelProvider.length > 0
-                                  ? chatModelProvider.map((model) => ({
-                                      value: model.name,
-                                      label: model.displayName,
-                                    }))
+                    <SectionHeader>AI Models</SectionHeader>
+                    {config.chatModelProviders && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <SettingItem 
+                          label="Chat Model Provider"
+                          description="Select your AI chat model provider"
+                        >
+                          <Select
+                            value={selectedChatModelProvider ?? undefined}
+                            onChange={(e) => {
+                              setSelectedChatModelProvider(e.target.value);
+                              if (e.target.value === 'custom_openai') {
+                                setSelectedChatModel('');
+                              } else {
+                                setSelectedChatModel(
+                                  config.chatModelProviders[e.target.value][0].name,
+                                );
+                              }
+                            }}
+                            className="w-full"
+                            options={Object.keys(config.chatModelProviders).map(
+                              (provider) => ({
+                                value: provider,
+                                label: provider.charAt(0).toUpperCase() + provider.slice(1),
+                              }),
+                            )}
+                          />
+                        </SettingItem>
+
+                        {selectedChatModelProvider && selectedChatModelProvider !== 'custom_openai' && (
+                          <SettingItem 
+                            label="Chat Model"
+                            description="Choose the specific model to use"
+                          >
+                            <Select
+                              value={selectedChatModel ?? undefined}
+                              onChange={(e) => setSelectedChatModel(e.target.value)}
+                              className="w-full"
+                              options={(() => {
+                                const chatModelProvider =
+                                  config.chatModelProviders[
+                                    selectedChatModelProvider
+                                  ];
+
+                                return chatModelProvider
+                                  ? chatModelProvider.length > 0
+                                    ? chatModelProvider.map((model) => ({
+                                        value: model.name,
+                                        label: model.displayName,
+                                      }))
+                                    : [
+                                        {
+                                          value: '',
+                                          label: 'No models available',
+                                          disabled: true,
+                                        },
+                                      ]
                                   : [
                                       {
                                         value: '',
-                                        label: 'No models available',
+                                        label:
+                                          'Invalid provider, please check backend logs',
                                         disabled: true,
                                       },
-                                    ]
-                                : [
-                                    {
-                                      value: '',
-                                      label:
-                                        'Invalid provider, please check backend logs',
-                                      disabled: true,
-                                    },
-                                  ];
-                            })()}
+                                    ];
+                              })()}
+                            />
+                          </SettingItem>
+                        )}
+                      </div>
+                    )}
+
+                    {selectedChatModelProvider === 'custom_openai' && (
+                      <div className="space-y-4 border rounded-lg p-4 bg-light-secondary/50 dark:bg-dark-200/50">
+                        <SettingItem 
+                          label="Custom Model Name"
+                          description="Select or enter an OpenAI model identifier"
+                        >
+                          <div className="flex flex-col space-y-2">
+                            <Select
+                              value={selectedChatModel ?? undefined}
+                              onChange={(e) => setSelectedChatModel(e.target.value)}
+                              className="w-full"
+                              options={[
+                                { value: '', label: 'Select a model' },
+                                ...CUSTOM_OPENAI_MODELS,
+                                { value: 'custom', label: 'Custom model name' }
+                              ]}
+                            />
+                            {selectedChatModel === 'custom' && (
+                              <Input
+                                type="text"
+                                placeholder="Enter custom model name"
+                                onChange={(e) => setSelectedChatModel(e.target.value)}
+                                className="mt-2"
+                              />
+                            )}
+                          </div>
+                        </SettingItem>
+                        
+                        <SettingItem 
+                          label="Custom API Key"
+                          description="Your OpenAI API key for custom endpoint"
+                        >
+                          <Input
+                            type="password"
+                            placeholder="sk-..."
+                            defaultValue={customOpenAIApiKey!}
+                            onChange={(e) => setCustomOpenAIApiKey(e.target.value)}
                           />
-                        </div>
-                      )}
-                    {selectedChatModelProvider &&
-                      selectedChatModelProvider === 'custom_openai' && (
-                        <>
-                          <div className="flex flex-col space-y-1">
-                            <p className="text-black/70 dark:text-white/70 text-sm">
-                              Model name
-                            </p>
-                            <Input
-                              type="text"
-                              placeholder="Model name"
-                              defaultValue={selectedChatModel!}
-                              onChange={(e) =>
-                                setSelectedChatModel(e.target.value)
-                              }
-                            />
-                          </div>
-                          <div className="flex flex-col space-y-1">
-                            <p className="text-black/70 dark:text-white/70 text-sm">
-                              Custom OpenAI API Key
-                            </p>
-                            <Input
-                              type="text"
-                              placeholder="Custom OpenAI API Key"
-                              defaultValue={customOpenAIApiKey!}
-                              onChange={(e) =>
-                                setCustomOpenAIApiKey(e.target.value)
-                              }
-                            />
-                          </div>
-                          <div className="flex flex-col space-y-1">
-                            <p className="text-black/70 dark:text-white/70 text-sm">
-                              Custom OpenAI Base URL
-                            </p>
-                            <Input
-                              type="text"
-                              placeholder="Custom OpenAI Base URL"
-                              defaultValue={customOpenAIBaseURL!}
-                              onChange={(e) =>
-                                setCustomOpenAIBaseURL(e.target.value)
-                              }
-                            />
-                          </div>
-                        </>
-                      )}
-                    {/* Embedding models */}
-                    {config.embeddingModelProviders && (
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-black/70 dark:text-white/70 text-sm">
-                          Embedding model Provider
-                        </p>
+                        </SettingItem>
+                        <SettingItem 
+                          label="Base URL"
+                          description="Custom OpenAI API endpoint URL"
+                        >
+                          <Input
+                            type="text"
+                            placeholder="https://api.openai.com/v1"
+                            defaultValue={customOpenAIBaseURL!}
+                            onChange={(e) => setCustomOpenAIBaseURL(e.target.value)}
+                          />
+                        </SettingItem>
+                      </div>
+                    )}
+
+                    <div className="mt-6">
+                      <SettingItem 
+                        label="Embedding Model Provider"
+                        description="Select provider for text embeddings"
+                      >
                         <Select
                           value={selectedEmbeddingModelProvider ?? undefined}
                           onChange={(e) => {
                             setSelectedEmbeddingModelProvider(e.target.value);
                             setSelectedEmbeddingModel(
-                              config.embeddingModelProviders[e.target.value][0]
-                                .name,
+                              config.embeddingModelProviders[e.target.value][0].name,
                             );
                           }}
+                          className="w-full"
                           options={Object.keys(
                             config.embeddingModelProviders,
                           ).map((provider) => ({
@@ -370,152 +421,157 @@ const SettingsDialog = ({
                             value: provider,
                           }))}
                         />
-                      </div>
-                    )}
-                    {selectedEmbeddingModelProvider && (
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-black/70 dark:text-white/70 text-sm">
-                          Embedding Model
-                        </p>
-                        <Select
-                          value={selectedEmbeddingModel ?? undefined}
-                          onChange={(e) =>
-                            setSelectedEmbeddingModel(e.target.value)
-                          }
-                          options={(() => {
-                            const embeddingModelProvider =
-                              config.embeddingModelProviders[
-                                selectedEmbeddingModelProvider
-                              ];
+                      </SettingItem>
 
-                            return embeddingModelProvider
-                              ? embeddingModelProvider.length > 0
-                                ? embeddingModelProvider.map((model) => ({
-                                    label: model.displayName,
-                                    value: model.name,
-                                  }))
+                      {selectedEmbeddingModelProvider && (
+                        <SettingItem 
+                          label="Embedding Model"
+                          description="Choose the specific embedding model"
+                        >
+                          <Select
+                            value={selectedEmbeddingModel ?? undefined}
+                            onChange={(e) => setSelectedEmbeddingModel(e.target.value)}
+                            className="w-full"
+                            options={(() => {
+                              const embeddingModelProvider =
+                                config.embeddingModelProviders[
+                                  selectedEmbeddingModelProvider
+                                ];
+
+                              return embeddingModelProvider
+                                ? embeddingModelProvider.length > 0
+                                  ? embeddingModelProvider.map((model) => ({
+                                      label: model.displayName,
+                                      value: model.name,
+                                    }))
+                                  : [
+                                      {
+                                        label: 'No embedding models available',
+                                        value: '',
+                                        disabled: true,
+                                      },
+                                    ]
                                 : [
                                     {
-                                      label: 'No embedding models available',
+                                      label:
+                                        'Invalid provider, please check backend logs',
                                       value: '',
                                       disabled: true,
                                     },
-                                  ]
-                              : [
-                                  {
-                                    label:
-                                      'Invalid provider, please check backend logs',
-                                    value: '',
-                                    disabled: true,
-                                  },
-                                ];
-                          })()}
-                        />
-                      </div>
-                    )}
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-black/70 dark:text-white/70 text-sm">
-                        OpenAI API Key
-                      </p>
-                      <Input
-                        type="text"
-                        placeholder="OpenAI API Key"
-                        defaultValue={config.openaiApiKey}
-                        onChange={(e) =>
-                          setConfig({
+                                  ];
+                            })()}
+                          />
+                        </SettingItem>
+                      )}
+                    </div>
+
+                    <SectionHeader>API Configuration</SectionHeader>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <SettingItem 
+                        label="OpenAI API Key"
+                        description="Required for OpenAI models"
+                      >
+                        <Input
+                          type="password"
+                          placeholder="sk-..."
+                          defaultValue={config.openaiApiKey}
+                          onChange={(e) => setConfig({
                             ...config,
                             openaiApiKey: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-black/70 dark:text-white/70 text-sm">
-                        Ollama API URL
-                      </p>
-                      <Input
-                        type="text"
-                        placeholder="Ollama API URL"
-                        defaultValue={config.ollamaApiUrl}
-                        onChange={(e) =>
-                          setConfig({
-                            ...config,
-                            ollamaApiUrl: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-black/70 dark:text-white/70 text-sm">
-                        GROQ API Key
-                      </p>
-                      <Input
-                        type="text"
-                        placeholder="GROQ API Key"
-                        defaultValue={config.groqApiKey}
-                        onChange={(e) =>
-                          setConfig({
-                            ...config,
-                            groqApiKey: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-black/70 dark:text-white/70 text-sm">
-                        Anthropic API Key
-                      </p>
-                      <Input
-                        type="text"
-                        placeholder="Anthropic API key"
-                        defaultValue={config.anthropicApiKey}
-                        onChange={(e) =>
-                          setConfig({
+                          })}
+                        />
+                      </SettingItem>
+
+                      <SettingItem 
+                        label="Anthropic API Key"
+                        description="Required for Claude models"
+                      >
+                        <Input
+                          type="password"
+                          placeholder="sk-ant-..."
+                          defaultValue={config.anthropicApiKey}
+                          onChange={(e) => setConfig({
                             ...config,
                             anthropicApiKey: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-black/70 dark:text-white/70 text-sm">
-                        Gemini API Key
-                      </p>
-                      <Input
-                        type="text"
-                        placeholder="Gemini API key"
-                        defaultValue={config.geminiApiKey}
-                        onChange={(e) =>
-                          setConfig({
+                          })}
+                        />
+                      </SettingItem>
+
+                      <SettingItem 
+                        label="GROQ API Key"
+                        description="Required for GROQ models"
+                      >
+                        <Input
+                          type="password"
+                          placeholder="gsk-..."
+                          defaultValue={config.groqApiKey}
+                          onChange={(e) => setConfig({
+                            ...config,
+                            groqApiKey: e.target.value,
+                          })}
+                        />
+                      </SettingItem>
+
+                      <SettingItem 
+                        label="Gemini API Key"
+                        description="Required for Google models"
+                      >
+                        <Input
+                          type="password"
+                          placeholder="API key"
+                          defaultValue={config.geminiApiKey}
+                          onChange={(e) => setConfig({
                             ...config,
                             geminiApiKey: e.target.value,
-                          })
-                        }
-                      />
+                          })}
+                        />
+                      </SettingItem>
+
+                      <SettingItem 
+                        label="Ollama API URL"
+                        description="URL for local Ollama instance"
+                        className="md:col-span-2"
+                      >
+                        <Input
+                          type="text"
+                          placeholder="http://localhost:11434"
+                          defaultValue={config.ollamaApiUrl}
+                          onChange={(e) => setConfig({
+                            ...config,
+                            ollamaApiUrl: e.target.value,
+                          })}
+                        />
+                      </SettingItem>
+                    </div>
+
+                    <div className="mt-8 flex items-center justify-between border-t border-light-200 dark:border-dark-200 pt-4">
+                      <p className="text-xs text-black/50 dark:text-white/50">
+                        Changes will take effect after page refresh
+                      </p>
+                      <button
+                        onClick={handleSubmit}
+                        disabled={isLoading || isUpdating}
+                        className="bg-[#24A0ED] flex items-center space-x-2 text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-colors disabled:opacity-50"
+                      >
+                        {isUpdating ? (
+                          <>
+                            <RefreshCw size={18} className="animate-spin" />
+                            <span>Saving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CloudUpload size={18} />
+                            <span>Save Changes</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
-                )}
-                {isLoading && (
+                ) : (
                   <div className="w-full flex items-center justify-center mt-6 text-black/70 dark:text-white/70 py-6">
                     <RefreshCcw className="animate-spin" />
                   </div>
                 )}
-                <div className="w-full mt-6 space-y-2">
-                  <p className="text-xs text-black/50 dark:text-white/50">
-                    We&apos;ll refresh the page after updating the settings.
-                  </p>
-                  <button
-                    onClick={handleSubmit}
-                    className="bg-[#24A0ED] flex flex-row items-center space-x-2 text-white disabled:text-white/50 hover:bg-opacity-85 transition duration-100 disabled:bg-[#ececec21] rounded-full px-4 py-2"
-                    disabled={isLoading || isUpdating}
-                  >
-                    {isUpdating ? (
-                      <RefreshCw size={20} className="animate-spin" />
-                    ) : (
-                      <CloudUpload size={20} />
-                    )}
-                  </button>
-                </div>
               </DialogPanel>
             </TransitionChild>
           </div>
