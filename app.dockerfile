@@ -1,6 +1,6 @@
 FROM node:20.18.0-alpine
 
-ARG NEXT_PUBLIC_WS_URL=ws://apisearch.taam.cloud
+ARG NEXT_PUBLIC_WS_URL=wss://apisearch.taam.cloud
 ARG NEXT_PUBLIC_API_URL=https://apisearch.taam.cloud/api
 ENV NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
