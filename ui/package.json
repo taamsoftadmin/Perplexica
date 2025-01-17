@@ -4,7 +4,7 @@
   "license": "MIT",
   "author": "ItzCrazyKns",
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "next dev --port 3008",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
