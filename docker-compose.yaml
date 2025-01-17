@@ -25,3 +25,7 @@ services:
 
 networks:
   perplexica-network:
+
+volumes:
+  backend-dbstore:
+  uploads:
