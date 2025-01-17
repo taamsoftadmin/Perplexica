@@ -88,6 +88,11 @@ const EmptyChatMessageInput = ({
           />
           <div className="flex flex-row items-center justify-between mt-4">
             <div className="flex flex-row items-center space-x-2 lg:space-x-4">
+              <Settings 
+                size={55}
+                className="cursor-pointer text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white transition-colors p-1.5"
+                onClick={() => setIsSettingsOpen(true)}
+              />
               <Focus focusMode={focusMode} setFocusMode={setFocusMode} />
               <Attach
                 fileIds={fileIds}
@@ -95,11 +100,6 @@ const EmptyChatMessageInput = ({
                 files={files}
                 setFiles={setFiles}
                 showText
-              />
-              <Settings 
-                size={20}
-                className="cursor-pointer text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white transition-colors"
-                onClick={() => setIsSettingsOpen(true)}
               />
             </div>
             <div className="flex flex-row items-center space-x-1 sm:space-x-4">

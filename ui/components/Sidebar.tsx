@@ -51,7 +51,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div>
-      <div className="hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-14 lg:flex-col">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-14 lg:flex-col">
         <div className="flex grow flex-col items-center justify-between gap-y-4 overflow-y-auto bg-light-secondary dark:bg-dark-secondary px-1.5 py-6">
           <TooltipProvider>
             <Tooltip.Root>

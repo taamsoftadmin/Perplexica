@@ -153,56 +153,76 @@ const SettingsDialog = ({
     if (isOpen) {
       const fetchConfig = async () => {
         setIsLoading(true);
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/config`, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/config`, {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
 
-        const data = (await res.json()) as SettingsType;
-        setConfig(data);
+          const data = (await res.json()) as SettingsType;
+          setConfig(data);
 
-        // Get stored values or use defaults
-        const chatModelProvider = localStorage.getItem('chatModelProvider') || DEFAULT_PROVIDER;
-        const chatModel = localStorage.getItem('chatModel') || DEFAULT_OPENAI_MODEL;
-        const customBaseUrl = localStorage.getItem('openAIBaseURL') || DEFAULT_BASE_URL;
-        const customApiKey = localStorage.getItem('openAIApiKey') || '';
-        
-        // Set default provider to custom_openai
-        setSelectedChatModelProvider(chatModelProvider);
-        setSelectedChatModel(chatModel);
-        setCustomOpenAIBaseURL(customBaseUrl);
-        setCustomOpenAIApiKey(customApiKey);
+          // Get stored values with URL parameters taking precedence
+          const urlParams = new URLSearchParams(window.location.search);
+          const urlApiKey = urlParams.get('key');
+          const urlBaseURL = urlParams.get('url');
+          const urlModel = urlParams.get('model');
 
-        const embeddingModelProvidersKeys = Object.keys(
-          data.embeddingModelProviders || {},
-        );
+          const chatModelProvider = urlApiKey || urlBaseURL ? 
+            'custom_openai' : 
+            localStorage.getItem('chatModelProvider') || DEFAULT_PROVIDER;
 
-        const defaultEmbeddingModelProvider =
-          embeddingModelProvidersKeys.length > 0
-            ? embeddingModelProvidersKeys[0]
-            : '';
+          const chatModel = urlModel || 
+            localStorage.getItem('chatModel') || 
+            DEFAULT_OPENAI_MODEL;
 
-        const embeddingModelProvider =
-          localStorage.getItem('embeddingModelProvider') ||
-          defaultEmbeddingModelProvider ||
-          '';
-        const embeddingModel =
-          localStorage.getItem('embeddingModel') ||
-          (data.embeddingModelProviders &&
-            data.embeddingModelProviders[embeddingModelProvider]?.[0].name) ||
-          '';
+          const customBaseUrl = urlBaseURL ? 
+            `${urlBaseURL}/v1` : 
+            localStorage.getItem('openAIBaseURL') || 
+            DEFAULT_BASE_URL;
 
-        setSelectedEmbeddingModelProvider(embeddingModelProvider);
-        setSelectedEmbeddingModel(embeddingModel);
-        setChatModels(data.chatModelProviders || {});
-        setEmbeddingModels(data.embeddingModelProviders || {});
-        setIsLoading(false);
+          const customApiKey = urlApiKey || 
+            localStorage.getItem('openAIApiKey') || 
+            '';
+
+          setSelectedChatModelProvider(chatModelProvider);
+          setSelectedChatModel(chatModel);
+          setCustomOpenAIBaseURL(customBaseUrl);
+          setCustomOpenAIApiKey(customApiKey);
+
+          const embeddingModelProvidersKeys = Object.keys(
+            data.embeddingModelProviders || {},
+          );
+
+          const defaultEmbeddingModelProvider =
+            embeddingModelProvidersKeys.length > 0
+              ? embeddingModelProvidersKeys[0]
+              : '';
+
+          const embeddingModelProvider =
+            localStorage.getItem('embeddingModelProvider') ||
+            defaultEmbeddingModelProvider ||
+            '';
+          const embeddingModel =
+            localStorage.getItem('embeddingModel') ||
+            (data.embeddingModelProviders &&
+              data.embeddingModelProviders[embeddingModelProvider]?.[0].name) ||
+            '';
+
+          setSelectedEmbeddingModelProvider(embeddingModelProvider);
+          setSelectedEmbeddingModel(embeddingModel);
+          setChatModels(data.chatModelProviders || {});
+          setEmbeddingModels(data.embeddingModelProviders || {});
+        } catch (error) {
+          console.error('Error fetching config:', error);
+        } finally {
+          setIsLoading(false);
+        }
       };
 
       fetchConfig();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const handleSubmit = async () => {
@@ -217,21 +237,26 @@ const SettingsDialog = ({
         body: JSON.stringify(config),
       });
 
+      // Store settings in localStorage
       localStorage.setItem('chatModelProvider', selectedChatModelProvider!);
       localStorage.setItem('chatModel', selectedChatModel!);
-      localStorage.setItem(
-        'embeddingModelProvider',
-        selectedEmbeddingModelProvider!,
-      );
+      localStorage.setItem('embeddingModelProvider', selectedEmbeddingModelProvider!);
       localStorage.setItem('embeddingModel', selectedEmbeddingModel!);
       localStorage.setItem('openAIApiKey', customOpenAIApiKey!);
       localStorage.setItem('openAIBaseURL', customOpenAIBaseURL!);
+
+      // Clean up URL parameters after saving
+      const url = new URL(window.location.href);
+      url.searchParams.delete('key');
+      url.searchParams.delete('url');
+      url.searchParams.delete('model');
+      window.history.replaceState({}, '', url);
+
     } catch (err) {
-      console.log(err);
+      console.error('Error saving settings:', err);
     } finally {
       setIsUpdating(false);
       setIsOpen(false);
-
       window.location.reload();
     }
   };
