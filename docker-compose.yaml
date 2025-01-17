@@ -4,9 +4,9 @@ services:
     ports:
       - 3009:3001
     volumes:
-      - ./data:/home/perplexica/data
-      - ./uploads:/home/perplexica/uploads
-      - ./config.toml:/home/perplexica/config.toml
+      - ./data:/root/perplexica/data
+      - ./uploads:/root/perplexica/uploads
+      - ./config.toml:/root/perplexica/config.toml
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     networks:
