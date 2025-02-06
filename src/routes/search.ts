@@ -10,6 +10,9 @@ import {
 import { searchHandlers } from '../websocket/messageHandler';
 import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { MetaSearchAgentType } from '../search/metaSearchAgent';
+import handleVideoSearch from '../chains/videoSearchAgent';
+import handleImageSearch from '../chains/imageSearchAgent';  
+import generateSuggestions from '../chains/suggestionGeneratorAgent';
 
 const router = express.Router();
 
@@ -34,6 +37,48 @@ interface ChatRequestBody {
   history: Array<[string, string]>;
 }
 
+interface EnhancedSearchResponse {
+  message: string;
+  sources: any[];
+  videos?: any[];
+  images?: any[];
+  suggestions?: string[];
+}
+
+interface VideoResult {
+  videos: {
+    url: string;
+    img_src: string;
+    title: string;
+    iframe_src: string;
+  }[];
+}
+
+interface ImageResult {
+  images: {
+    url: string;
+    img_src: string;
+    title: string;
+  }[];
+}
+
+const transformToVideoResult = (videos: any[]): VideoResult => ({
+  videos: videos.map(v => ({
+    url: v.url,
+    img_src: v.img_src,
+    title: v.title,
+    iframe_src: v.iframe_src
+  }))
+});
+
+const transformToImageResult = (images: any[]): ImageResult => ({
+  images: images.map(i => ({
+    url: i.url,
+    img_src: i.img_src,
+    title: i.title
+  }))
+});
+
 router.post('/', async (req, res) => {
   try {
     const body: ChatRequestBody = req.body;
@@ -48,11 +93,11 @@ router.post('/', async (req, res) => {
     const history: BaseMessage[] = body.history.map((msg) => {
       if (msg[0] === 'human') {
         return new HumanMessage({
-          content: msg[1],
+          content: msg[1]
         });
       } else {
         return new AIMessage({
-          content: msg[1],
+          content: msg[1]
         });
       }
     });
@@ -132,7 +177,17 @@ router.post('/', async (req, res) => {
     );
 
     let message = '';
-    let sources = [];
+    let sources: any[] = [];
+
+    // Get videos, images and suggestions in parallel
+    const [videosRaw, imagesRaw, suggestionResults] = await Promise.all([
+      handleVideoSearch({ chat_history: history, query: body.query }, llm),
+      handleImageSearch({ chat_history: history, query: body.query }, llm),
+      generateSuggestions({ chat_history: history }, llm)
+    ]);
+
+    const videoResults = transformToVideoResult(videosRaw);
+    const imageResults = transformToImageResult(imagesRaw);
 
     emitter.on('data', (data) => {
       const parsedData = JSON.parse(data);
@@ -144,13 +199,21 @@ router.post('/', async (req, res) => {
     });
 
     emitter.on('end', () => {
-      res.status(200).json({ message, sources });
+      const response: EnhancedSearchResponse = {
+        message,
+        sources,
+        videos: videoResults.videos,
+        images: imageResults.images,
+        suggestions: suggestionResults
+      };
+      res.status(200).json(response);
     });
 
     emitter.on('error', (data) => {
       const parsedData = JSON.parse(data);
       res.status(500).json({ message: parsedData.data });
     });
+
   } catch (err: any) {
     logger.error(`Error in getting search results: ${err.message}`);
     res.status(500).json({ message: 'An error has occurred.' });
